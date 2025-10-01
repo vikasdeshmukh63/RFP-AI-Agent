@@ -30,8 +30,8 @@ export const schemas = {
     session_id: Joi.string().required(),
     message: Joi.string().required(),
     sender: Joi.string().valid('user', 'ai').required(),
-    file_url: Joi.string().uri().optional(),
-    file_name: Joi.string().optional()
+    file_url: Joi.string().optional().allow(null, ''),
+    file_name: Joi.string().optional().allow(null, '')
   }),
 
   synopsis: Joi.object({
