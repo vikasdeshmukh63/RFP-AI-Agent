@@ -6,23 +6,139 @@ import documentService from '../services/documentParser.js';
 
 const router = express.Router();
 
-// Predefined RFP analysis questions (matching the frontend)
+// Predefined RFP analysis questions (comprehensive list - 131 questions)
 const PREDEFINED_QUESTIONS = [
-  "DC (Data Center)", "DR (Disaster Recovery)", "Concurrent users", "Total users per day", "Milestones", "Delivery plan", "Go Live deadline",
-  "Penalties", "SLA (Service Level Agreement)", "EMD (Earnest Money Deposit)", 
-  "PBG (Performance Bank Guarantee)", "Budget by Client", "Date of bid submission", "Prebid date",
-  "Cloud requirements", "Non-functional requirements (Performance, Uptime, Security)",
-  "Security Audit requirements", "MFA (Multi-Factor Authentication)", "SSO (Single Sign-On)",
-  "SSL requirements", "Payment Gateway", "Aadhaar integration", "SMS integration", "Email integration",
-  "On Site Resource requirements", "Handholding requirements", "Training requirements", 
-  "Data Migration", "On Site presence", "AMC (Annual Maintenance Contract)", 
-  "O&M (Operation & Maintenance)", "Deliverables", "Documentation requirements",
-  "Multilingual support", "KPIs (Key Performance Indicators)", "Success Factors",
-  "Analytics Interactive Dashboard", "RBAC (Role Based Access Control)", "Telemetry",
-  "Existing Technical Stack", "Expected Technical Stack", "Chatbot requirements",
-  "IVR (Interactive Voice Response)", "Audit", "How Many Audit", 
-  "RTO (Recovery Time Objective)", "RPO (Recovery Point Objective)", "Seismic zones", "Payment Type", "Pay Out Type",
-  "Backup", "Backup Type", "Total size of the data"
+  "DC (Data Center): Please share DC infrastructure details including VM configuration (vCPU, RAM, Storage), OS versions for app/DB, firewall and WAF throughput, load balancer specs, public IP count, required bandwidth/links (MPLS/P2P/ILL), redundancy, storage IOPS/block size, processor requirement, VPN needs, and daily data generation.",
+  "DR (Disaster Recovery): Please confirm whether DR is required and its sizing (e.g., 100% or 50% of DC), expected RTO/RPO, number of DR drills per year, DR public IPs, and any DRM/tooling expectations.",
+  "Concurrent users: Please confirm the number of concurrent users expected to access the setup at peak.",
+  "Total users per day: Please provide the expected total unique users per day to size capacity and network appropriately.",
+  "Milestones: Please list project milestones and dates (e.g., kickoff, MVP, UAT, go‑live).",
+  "Delivery plan: Please share the phase‑wise delivery plan with dependencies, acceptance points, and transitions.",
+  "Go‑live deadline: Please confirm the target go‑live date and any hard regulatory or business deadlines.",
+  "Penalties: Please define penalties for delivery delays and SLA breaches, including rates, caps, and termination/forfeiture triggers.",
+  "SLA (Service Level Agreement): Please specify availability targets, response and resolution times, and incident/security handling with measurement and reporting.",
+  "EMD (Earnest Money Deposit): Please state the EMD amount, payment mode/timing, exemptions if any, and refund timelines/conditions.",
+  "PBG (Performance Bank Guarantee): Please state the PBG value/percentage, submission timeline, validity, and forfeiture conditions.",
+  "Budget by Client: Please share the sanctioned budget or acceptable range and any fiscal‑year constraints.",
+  "Date of bid submission: Please confirm the bid submission deadline and required format.",
+  "Pre‑bid date: Please confirm the pre‑bid meeting date/time, mode, and clarification process.",
+  "Cloud requirements: Please detail cloud/DC requirements including OS and DB versions/editions, total VM count, load balancer needs, bandwidth, IPs, architecture, and required security components.",
+  "Non‑functional requirements: Please specify performance/throughput/latency targets, availability objectives, storage IOPS/block size, and security expectations.",
+  "Security audit requirements: Please specify scope, evidence, and frequency of audits, including audit trails for sensitive services.",
+  "MFA: Please specify MFA use cases, deployment points, and the number of users who will avail MFA services.",
+  "SSO: Please confirm SSO requirements, supported protocols/IdPs (e.g., SAML/OIDC), and access management expectations.",
+  "SSL requirements: Please confirm SSL certificate types per domain (domain/organization/wildcard/EV) and quantities.",
+  "Payment gateway: Please confirm whether payment gateway integration is required and specify providers, compliance, and payment methods.",
+  "Aadhaar integration: Please confirm scope (Authentication/e‑KYC), AUA/KUA/ASA onboarding, API type (OTP/biometrics), encryption, and audit compliance per UIDAI specs.",
+  "SMS integration: Please confirm SMS gateway requirement, expected volumes/throughput, and use cases (OTP/alerts/notifications).",
+  "Email integration: Please confirm mailbox count, per‑mailbox size, SMTP service need, and total email IDs.",
+  "On‑site resource requirements: Please specify onsite roles, counts, skills, duration, and working model.",
+  "Handholding requirements: Please define scope and duration of post‑go‑live handholding/hypercare support.",
+  "Training requirements: Please specify batch counts, mode (onsite/online), location, infra/bandwidth responsibility, and day‑wise schedule.",
+  "Data migration: Please share migration scope including hypervisor details, VM count and nature, app/DB versions, total one‑time data size, wave plan, roles/responsibilities, and payment methodology.",
+  "On‑site presence: Please confirm onsite presence expectations during implementation, cutover, and operations (residency/shift coverage).",
+  "AMC: Please confirm AMC scope, duration, coverage (hardware/software), and response/resolution commitments.",
+  "O&M: Please define O&M responsibilities, staffing, hours of coverage, and performance expectations post go‑live.",
+  "Deliverables: Please list expected deliverables across phases (designs, configs, code, test plans/reports, runbooks, training, acceptance artifacts).",
+  "Documentation: Please specify documentation standards, formats, and versioning for architecture, security, operations, and training.",
+  "Multilingual support: Please confirm multilingual UI/content requirements and enumerate languages to be supported.",
+  "KPIs: Please define KPIs and acceptance criteria used to evaluate project success and vendor performance.",
+  "Success factors: Please list business and user‑centric success factors and how they will be measured.",
+  "Analytics interactive dashboard: Please confirm analytics/dashboard scope, data sources, and reporting cadence.",
+  "RBAC: Please define roles/permissions model, RBAC scope, and admin/governance requirements.",
+  "Telemetry: Please specify monitoring, logging, and tracing requirements with retention and alerting.",
+  "Existing technical stack: Please describe current environment, application flow, and components across DC/DR.",
+  "Expected technical stack: Please outline preferred/target technologies, cloud services, and architecture standards.",
+  "Chatbot requirements: Please confirm chatbot scope, channels, language/NLP needs, and integration points.",
+  "IVR requirements: Please confirm IVR scope, call flows, telephony integration, and reporting needs.",
+  "Audit types: Please define types of technical/security audits required (scope, evidence, timelines).",
+  "Number of audits: Please specify number and frequency of audits per year during implementation and O&M.",
+  "RTO: Please confirm target Recovery Time Objective for applications/services.",
+  "RPO: Please confirm target Recovery Point Objective for data and transactions.",
+  "Seismic zones: Please specify required DC/DR seismic zone compliance and siting constraints.",
+  "Payment type: Please confirm payment type (fixed price, T&M, milestone‑based) and linked acceptance criteria.",
+  "Pay‑out type: Please confirm payout schedule, invoicing cadence, and any retention/holdback terms.",
+  "Backup required: Please confirm if backup is required and total backup space at DC/DR sites (GB/TB).",
+  "Backup type/policy: Please specify backup policy (incremental/daily, weekly/monthly full), retention, media (disk‑to‑disk or disk‑to‑tape), and number of endpoints.",
+  "Total size of data: Please provide current total data size and daily incremental size for migration, bandwidth, and backup sizing.",
+  "Kindly share the details of VM's configuration (vCPU, RAM, Storage).",
+  "Kindly confirm the OS version and edition along with App and DB servers.",
+  "Kindly specify the operating system required per VM in the BoQ.",
+  "In the computing requirements, OS details (Windows, RHEL, Ubuntu, CentOS) are not specified; kindly provide this information.",
+  "Kindly provide the required firewall throughput so that an appropriate firewall can be selected.",
+  "Kindly confirm the required WAF throughput so an appropriately sized WAF can be selected.",
+  "Kindly provide database version and edition details (Community/Enterprise).",
+  "Kindly confirm who will provision database licenses and who will manage the database (Client/partner/).",
+  "Kindly share the total VM count for PostgreSQL Enterprise Version for licensing.",
+  "Kindly specify the data archival space required in the DC/DR site (in GB/TB).",
+  "Kindly specify the archival retention period.",
+  "Kindly confirm required load balancer throughput and specifications.",
+  "Kindly confirm whether a Global Load Balancer needs to be considered.",
+  "Kindly confirm if VPN is required; if yes, provide approximate SSL VPN and IPsec VPN user counts for Windows and Linux.",
+  "Kindly confirm the approximate number of VPN connections.",
+  "Kindly mention how many public IPs are required.",
+  "Please specify SSL certificate type per domain (domain/organization/wildcard/EV) and number of certificates.",
+  "Please confirm the number of concurrent users who will access the setup.",
+  "Kindly confirm any link terminating to the DC and its size; is it P2P/MPLS.",
+  "Kindly confirm the required bandwidth for the DC site.",
+  "Please specify the daily incremental data size needed for bandwidth and backup.",
+  "Kindly specify which connectivity link is required (MPLS, P2P, ILL).",
+  "Kindly specify the daily data incremental size for the replication link.",
+  "Please confirm total data generated daily at the DC site, including log and flat files.",
+  "Please clarify if there is redundancy at the DC level; if yes, share details.",
+  "Kindly specify storage IOPS with block size.",
+  "Kindly confirm whether the cores are physical or virtual.",
+  "As per MeitY guidelines, CSPs need to provision a 2.4 GHz processor; kindly consider a 2.4 GHz processor.",
+  "Kindly provide details about the three‑tier application architecture and the components of each tier.",
+  "Kindly confirm the security components required at the DC site (Firewall, WAF, SSL, Antivirus+HIPS, SIEM, DDoS, IDS/IPS).",
+  "Kindly confirm the network components required at the DC site (Load Balancer, Public IP, bandwidth, etc.).",
+  "Kindly specify MFA use cases, deployment locations, and the count of users who will avail MFA.",
+  "Total concurrent users at any point in time to size firewall throughput.",
+  "Number of links that will be terminated at the site if MPLS is used.",
+  "Mode of access for users to this setup: MPLS, VPN, or Internet.",
+  "If MPLS is used, confirm the number of links that will terminate at the site.",
+  "Required internet bandwidth for accessing the setup (e.g., 10 Mbps or 1 TB).",
+  "If VPN, confirm whether it is Site‑to‑Site VPN or SSL VPN.",
+  "Confirm OS version and edition and the latest patch level.",
+  "Confirm database software version and edition and the latest patch level.",
+  "Clarify who is responsible for providing the database licenses.",
+  "Confirm whether database management services are to be provided.",
+  "Confirm required backup space at the DC site in GB/TB (if yes).",
+  "Confirm the backup policy (Incremental, Daily, Weekly Full).",
+  "Verify the total number of endpoints that need to be backed up.",
+  "Provide the current total size of the data.",
+  "Confirm the backup data size to be provided per user.",
+  "Specify the current backup software being used.",
+  "Confirm the backup retention period.",
+  "Confirm whether a load balancer is needed for application load distribution; if yes, specify the number required.",
+  "Provide details on security components needed at DC and DR (firewall, WAF, antivirus, SIEM, DDoS, etc.).",
+  "Confirm whether SSL certificates are required; if yes, confirm the certificate type (Alpha, Domain, Organization, Wildcard, Extended SSL).",
+  "If mailboxes are to be provided, confirm the total number of mailboxes and the size of each mailbox.",
+  "Confirm the total number of email IDs required.",
+  "Confirm expected mailbox size per user (e.g., 1/2/5 GB).",
+  "Confirm whether SMTP service is required per the email requirements.",
+  "Confirm whether an SMS gateway is required for phone/SMS needs.",
+  "DR sizing: Kindly share the sizing of the DR site.",
+  "Kindly mention the expected RTO‑RPO.",
+  "Confirm whether DC licenses can be used in DR and whether Software Assurance exists for DC DB and OS licenses.",
+  "Share current DC architecture, application flow, and security services.",
+  "Confirm whether DHCP is configured in the existing DC environment.",
+  "Mention the total number of public IPs required at the DR site.",
+  "Confirm whether DRM tool is required for all VMs or only DB servers.",
+  "Confirm DRM tools required for monitoring applications to meet RTO‑RPO.",
+  "Specify the daily increment of total data including database, log files, and flat files.",
+  "As per the noted MeitY guideline, RTO is 15 minutes for transactions and RPO is 2 hours for data; confirm applicability.",
+  "Kindly share the existing hypervisor details.",
+  "Confirm applications and database details for DC and DR to be migrated wave‑wise, including app version, DB size, and instance.",
+  "Share details of the physical servers and virtual servers.",
+  "Confirm the count of total VMs to be migrated and the nature of each VM.",
+  "Share total data size for one‑time migration and who will perform migration (Client or Vendor)",
+  "Confirm exact data size to be migrated on new servers in MB/GB/TB.",
+  "Mention if any additional data is to be migrated.",
+  "Mention current software details.",
+  "Describe the current environment and infrastructure for the applications and data.",
+  "Clarify the nature and type of migration support expected from the bidder for moving from existing infra to cloud.",
+  "As migration services have associated costs, confirm the payment methodology for these migration services."
 ];
 
 // Quick RFP Analysis
@@ -50,77 +166,114 @@ router.post('/rfp-quick-analysis', authenticateToken, async (req, res) => {
     const { file_path, mime_type, original_name } = document;
 
     // Use custom questions if provided, otherwise use predefined ones
-    const questions = custom_questions && Array.isArray(custom_questions) 
+    const allQuestions = custom_questions && Array.isArray(custom_questions) 
       ? custom_questions 
       : PREDEFINED_QUESTIONS;
 
-    console.log(`📄 Performing quick RFP analysis: ${original_name}`);
+    console.log(`📄 Performing quick RFP analysis: ${original_name} (${allQuestions.length} questions)`);
     
     // Prepare document for AI
     const preparedDoc = await documentService.prepareDocumentForAI(file_path, mime_type);
 
-    // Create optimized prompt for quick analysis
-    const prompt = `As an expert RFP analyzer for ESDS, analyze the provided document and extract answers for the following questions.
+    // Split questions into smaller chunks to avoid JSON parsing issues
+    const CHUNK_SIZE = 20; // Process 20 questions at a time
+    const questionChunks = [];
+    for (let i = 0; i < allQuestions.length; i += CHUNK_SIZE) {
+      questionChunks.push(allQuestions.slice(i, i + CHUNK_SIZE));
+    }
+
+    console.log(`📊 Processing ${allQuestions.length} questions in ${questionChunks.length} chunks of ${CHUNK_SIZE}`);
+
+    let completeResults = {};
+
+    // Process each chunk separately
+    for (let chunkIndex = 0; chunkIndex < questionChunks.length; chunkIndex++) {
+      const questions = questionChunks[chunkIndex];
+      console.log(`🔄 Processing chunk ${chunkIndex + 1}/${questionChunks.length} (${questions.length} questions)`);
+
+      try {
+
+        // Create optimized prompt for this chunk
+        const prompt = `As an expert RFP analyzer for ESDS, analyze the provided document and extract answers for the following ${questions.length} questions.
 
 **Instructions:**
-- For each question, provide the exact information from the document.
+- Carefully read through the entire document to find relevant information for each question.
+- Look for information that may be described differently but relates to the question.
+- For infrastructure questions, look for sections on technical requirements, system architecture, hosting, deployment.
 - Include source citations like (Page X, Section Y) when possible.
-- If not found, respond with "Not specified in RFP".
-- Be concise and accurate.
-- Return a JSON object with questions as keys and answers as values.
+- If information is not explicitly stated but can be inferred, mention "Inferred from [context]".
+- Only respond with "Not specified in RFP" if truly not available.
+- Return a valid JSON object with questions as keys and answers as values.
 
 **Questions:**
 ${questions.join('\n')}`;
 
-    const schema = {
-      type: "object",
-      properties: questions.reduce((acc, question) => {
-        acc[question] = { type: "string" };
-        return acc;
-      }, {}),
-      additionalProperties: false
-    };
+        const schema = {
+          type: "object",
+          properties: questions.reduce((acc, question) => {
+            acc[question] = { type: "string" };
+            return acc;
+          }, {}),
+          additionalProperties: false
+        };
 
-    let analysis;
-    try {
-      analysis = await openRouterService.invokeLLM({
-        prompt,
-        documents: [preparedDoc],
-        responseJsonSchema: schema
-      });
-    } catch (visionError) {
-      console.warn('Vision-based analysis failed, trying text-only approach:', visionError.message);
-      
-      // Fallback to text-only analysis
-      const textOnlyPrompt = `As an expert RFP analyzer for ESDS, analyze RFP documents and answer the following questions based on common RFP patterns.
+        let chunkAnalysis;
+        try {
+          chunkAnalysis = await openRouterService.invokeLLM({
+            prompt,
+            documents: [preparedDoc],
+            responseJsonSchema: schema
+          });
+        } catch (visionError) {
+          console.warn(`Chunk ${chunkIndex + 1} vision-based analysis failed, trying text-only:`, visionError.message);
+          
+          const textOnlyPrompt = `Analyze RFP and answer these ${questions.length} questions based on typical software development RFP patterns:
 
-**Questions:**
 ${questions.join('\n')}
 
-**Instructions:**
-- Provide typical answers based on standard RFP requirements
-- If information is commonly found in RFPs, provide guidance
-- If not typically specified, respond with "Not specified in RFP"
-- Be concise and accurate
-- Return a JSON object with questions as keys and answers as values`;
+Return valid JSON with questions as keys and answers as values.`;
 
-      analysis = await openRouterService.invokeLLM({
-        prompt: textOnlyPrompt,
-        responseJsonSchema: schema
-      });
+          chunkAnalysis = await openRouterService.invokeLLM({
+            prompt: textOnlyPrompt,
+            responseJsonSchema: schema
+          });
+        }
+
+        // Process chunk results
+        if (chunkAnalysis && typeof chunkAnalysis === 'object' && !chunkAnalysis.error) {
+          // Successful chunk analysis
+          questions.forEach(question => {
+            completeResults[question] = chunkAnalysis[question] || "Not specified in RFP";
+          });
+          console.log(`✅ Chunk ${chunkIndex + 1} completed successfully`);
+        } else {
+          // Chunk failed
+          console.warn(`❌ Chunk ${chunkIndex + 1} failed:`, chunkAnalysis?.error || 'Unknown error');
+          questions.forEach(question => {
+            completeResults[question] = "Analysis failed for this question. Please try again.";
+          });
+        }
+
+      } catch (chunkError) {
+        console.error(`❌ Chunk ${chunkIndex + 1} error:`, chunkError);
+        questions.forEach(question => {
+          completeResults[question] = "Analysis error occurred. Please try again.";
+        });
+      }
+
+      // Add small delay between chunks to avoid rate limiting
+      if (chunkIndex < questionChunks.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
 
-    // Ensure all questions have answers
-    const completeResults = {};
-    questions.forEach(question => {
-      completeResults[question] = analysis[question] || "Not specified in RFP";
-    });
+    console.log(`🎉 Analysis completed: ${Object.keys(completeResults).length} questions processed`);
 
     // Save analysis results
     await AnalysisResult.create({
       document_id: document_id,
       analysis_type: 'quick_rfp_analysis',
-      questions: JSON.stringify(questions),
+      questions: JSON.stringify(allQuestions),
       answers: JSON.stringify(completeResults),
       user_id: req.user.id
     });
@@ -133,7 +286,8 @@ ${questions.join('\n')}
         name: original_name,
         type: mime_type
       },
-      questions_analyzed: questions.length
+      questions_analyzed: allQuestions.length,
+      chunks_processed: questionChunks.length
     });
 
   } catch (error) {

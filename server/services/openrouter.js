@@ -110,7 +110,14 @@ class OpenRouterService {
         };
 
         // Add schema instruction to prompt
-        const schemaInstruction = `\n\nPlease respond with a valid JSON object matching this schema: ${JSON.stringify(responseJsonSchema)}`;
+        const schemaInstruction = `\n\nIMPORTANT: Please respond with a valid JSON object only. Follow these rules:
+- Start with { and end with }
+- Use double quotes for all strings
+- Escape any quotes inside strings with \\"
+- Do not include any text before or after the JSON
+- Ensure all strings are properly closed
+- If an answer contains quotes, escape them properly
+Schema: ${JSON.stringify(responseJsonSchema)}`;
         if (typeof messages[0].content === "string") {
           messages[0].content += schemaInstruction;
         } else if (Array.isArray(messages[0].content)) {
@@ -130,8 +137,34 @@ class OpenRouterService {
             return JSON.parse(content);
           } catch (parseError) {
             console.error("Failed to parse JSON response:", parseError);
-            // Return the raw content if JSON parsing fails
-            return content;
+            console.log("Raw response content:", content.substring(0, 1000) + "...");
+            
+            // Try to fix common JSON issues
+            try {
+              // Remove any markdown code blocks
+              let cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+              
+              // Try to extract JSON from the response
+              const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                return JSON.parse(jsonMatch[0]);
+              }
+              
+              // If still fails, return a structured error response
+              console.warn("Could not extract valid JSON, returning error structure");
+              return {
+                error: "JSON parsing failed",
+                raw_response: content.substring(0, 500) + "...",
+                parse_error: parseError.message
+              };
+            } catch (secondError) {
+              console.error("Second JSON parse attempt failed:", secondError);
+              return {
+                error: "JSON parsing failed completely",
+                raw_response: content.substring(0, 500) + "...",
+                parse_error: parseError.message
+              };
+            }
           }
         }
 

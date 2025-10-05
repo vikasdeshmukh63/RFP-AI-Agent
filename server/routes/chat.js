@@ -135,7 +135,7 @@ router.post("/messages", authenticateToken, validateRequest(schemas.chatMessage)
     const { session_id, message, sender, file_url, file_name } = req.body;
 
     // Ensure session exists before saving message
-    
+
 
     // Save user message
     const savedMessage = await GeneralChatMessage.create({
