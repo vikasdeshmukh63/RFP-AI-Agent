@@ -1,17 +1,17 @@
 // API client for the Node.js server
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 class ApiClient {
   constructor() {
-    this.token = localStorage.getItem('auth_token');
+    this.token = localStorage.getItem("auth_token");
   }
 
   setToken(token) {
     this.token = token;
     if (token) {
-      localStorage.setItem('auth_token', token);
+      localStorage.setItem("auth_token", token);
     } else {
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem("auth_token");
     }
   }
 
@@ -19,7 +19,7 @@ class ApiClient {
     const url = `${API_BASE_URL}${endpoint}`;
     const config = {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options.headers,
       },
       ...options,
@@ -30,10 +30,10 @@ class ApiClient {
     }
 
     const response = await fetch(url, config);
-    
+
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Network error' }));
-      throw new Error(error.error || 'Request failed');
+      const error = await response.json().catch(() => ({ error: "Network error" }));
+      throw new Error(error.error || "Request failed");
     }
 
     return response.json();
@@ -41,8 +41,8 @@ class ApiClient {
 
   // Auth methods
   async login(email, password) {
-    const result = await this.request('/auth/login', {
-      method: 'POST',
+    const result = await this.request("/auth/login", {
+      method: "POST",
       body: JSON.stringify({ email, password }),
     });
     this.setToken(result.token);
@@ -50,8 +50,8 @@ class ApiClient {
   }
 
   async register(email, password, name) {
-    const result = await this.request('/auth/register', {
-      method: 'POST',
+    const result = await this.request("/auth/register", {
+      method: "POST",
       body: JSON.stringify({ email, password, name }),
     });
     this.setToken(result.token);
@@ -59,31 +59,31 @@ class ApiClient {
   }
 
   async getProfile() {
-    return this.request('/auth/profile');
+    return this.request("/auth/profile");
   }
 
   async updateProfile(name) {
-    return this.request('/auth/profile', {
-      method: 'PUT',
+    return this.request("/auth/profile", {
+      method: "PUT",
       body: JSON.stringify({ name }),
     });
   }
 
   async changePassword(currentPassword, newPassword) {
-    return this.request('/auth/change-password', {
-      method: 'PUT',
+    return this.request("/auth/change-password", {
+      method: "PUT",
       body: JSON.stringify({ currentPassword, newPassword }),
     });
   }
 
   // Document methods
-  async uploadFile(file, uploadedFrom = 'unknown') {
+  async uploadFile(file, uploadedFrom = "unknown") {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('uploaded_from', uploadedFrom);
+    formData.append("file", file);
+    formData.append("uploaded_from", uploadedFrom);
 
-    return this.request('/documents/upload', {
-      method: 'POST',
+    return this.request("/documents/upload", {
+      method: "POST",
       headers: {}, // Remove Content-Type for FormData
       body: formData,
     });
@@ -99,21 +99,21 @@ class ApiClient {
   }
 
   async deleteDocument(id) {
-    return this.request(`/documents/${id}`, { method: 'DELETE' });
+    return this.request(`/documents/${id}`, { method: "DELETE" });
   }
 
   async prepareDocument(id) {
-    return this.request(`/documents/${id}/prepare`, { method: 'POST' });
+    return this.request(`/documents/${id}/prepare`, { method: "POST" });
   }
 
   async getDocumentStats() {
-    return this.request('/documents/stats/overview');
+    return this.request("/documents/stats/overview");
   }
 
   // Chat methods
-  async createSession(sessionId, title = 'New Chat') {
-    return this.request('/chat/sessions', {
-      method: 'POST',
+  async createSession(sessionId, title = "New Chat") {
+    return this.request("/chat/sessions", {
+      method: "POST",
       body: JSON.stringify({ session_id: sessionId, title }),
     });
   }
@@ -124,12 +124,12 @@ class ApiClient {
   }
 
   async deleteSession(sessionId) {
-    return this.request(`/chat/sessions/${sessionId}`, { method: 'DELETE' });
+    return this.request(`/chat/sessions/${sessionId}`, { method: "DELETE" });
   }
 
-  async sendMessage(sessionId, message, sender = 'user', fileUrl = null, fileName = null) {
-    return this.request('/chat/messages', {
-      method: 'POST',
+  async sendMessage(sessionId, message, sender = "user", fileUrl = null, fileName = null) {
+    return this.request("/chat/messages", {
+      method: "POST",
       body: JSON.stringify({
         session_id: sessionId,
         message,
@@ -146,12 +146,12 @@ class ApiClient {
   }
 
   async clearMessages(sessionId) {
-    return this.request(`/chat/messages/${sessionId}`, { method: 'DELETE' });
+    return this.request(`/chat/messages/${sessionId}`, { method: "DELETE" });
   }
 
   async analyzeDocumentWithChat(documentId, questions) {
-    return this.request('/chat/analyze-document', {
-      method: 'POST',
+    return this.request("/chat/analyze-document", {
+      method: "POST",
       body: JSON.stringify({ document_id: documentId, questions }),
     });
   }
@@ -163,28 +163,28 @@ class ApiClient {
 
   // Analysis methods
   async quickRFPAnalysis(documentId, customQuestions = null) {
-    return this.request('/analysis/rfp-quick-analysis', {
-      method: 'POST',
-      body: JSON.stringify({ 
+    return this.request("/analysis/rfp-quick-analysis", {
+      method: "POST",
+      body: JSON.stringify({
         document_id: documentId,
-        custom_questions: customQuestions 
+        custom_questions: customQuestions,
       }),
     });
   }
 
   async customAnalysis(documentId, questions, analysisName = null) {
-    return this.request('/analysis/custom-analysis', {
-      method: 'POST',
-      body: JSON.stringify({ 
-        document_id: documentId, 
+    return this.request("/analysis/custom-analysis", {
+      method: "POST",
+      body: JSON.stringify({
+        document_id: documentId,
         questions,
-        analysis_name: analysisName 
+        analysis_name: analysisName,
       }),
     });
   }
 
   async getPredefinedQuestions() {
-    return this.request('/analysis/predefined-questions');
+    return this.request("/analysis/predefined-questions");
   }
 
   async getAnalysisResults(params = {}) {
@@ -197,27 +197,27 @@ class ApiClient {
   }
 
   async deleteAnalysisResult(id) {
-    return this.request(`/analysis/results/${id}`, { method: 'DELETE' });
+    return this.request(`/analysis/results/${id}`, { method: "DELETE" });
   }
 
   async compareDocuments(documentIds, questions = null) {
-    return this.request('/analysis/compare-documents', {
-      method: 'POST',
-      body: JSON.stringify({ 
+    return this.request("/analysis/compare-documents", {
+      method: "POST",
+      body: JSON.stringify({
         document_ids: documentIds,
-        questions 
+        questions,
       }),
     });
   }
 
   async getAnalysisStats() {
-    return this.request('/analysis/stats');
+    return this.request("/analysis/stats");
   }
 
   // Synopsis methods
   async createSynopsis(data) {
-    return this.request('/synopsis', {
-      method: 'POST',
+    return this.request("/synopsis", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
@@ -233,18 +233,18 @@ class ApiClient {
 
   async updateSynopsis(id, data) {
     return this.request(`/synopsis/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(data),
     });
   }
 
   async deleteSynopsis(id) {
-    return this.request(`/synopsis/${id}`, { method: 'DELETE' });
+    return this.request(`/synopsis/${id}`, { method: "DELETE" });
   }
 
   async analyzeRFPForSynopsis(documentUrl, documentName) {
-    return this.request('/synopsis/analyze-rfp', {
-      method: 'POST',
+    return this.request("/synopsis/analyze-rfp", {
+      method: "POST",
       body: JSON.stringify({
         document_url: documentUrl,
         document_name: documentName,
@@ -253,7 +253,7 @@ class ApiClient {
   }
 
   async getSynopsisStats() {
-    return this.request('/synopsis/stats/overview');
+    return this.request("/synopsis/stats/overview");
   }
 
   async searchSynopsis(query, params = {}) {

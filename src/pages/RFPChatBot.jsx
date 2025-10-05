@@ -21,8 +21,10 @@ import {
   Minimize
 } from "lucide-react";
 import { format } from "date-fns";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-// Optimized MessageItem with deeper memoization
+// Optimized MessageItem with markdown support
 const MessageItem = React.memo(({ message }) => {
   const formattedTime = useMemo(() => {
     return message.created_date ? format(new Date(message.created_date), "HH:mm") : '';
@@ -33,6 +35,21 @@ const MessageItem = React.memo(({ message }) => {
     ai: "bg-white border border-slate-200 text-slate-900 shadow-sm"
   }), []);
 
+  // Check if message contains markdown patterns
+  const hasMarkdown = useMemo(() => {
+    if (message.sender !== 'ai') return false;
+    const markdownPatterns = [
+      /\*\*.*?\*\*/,  // Bold
+      /\*.*?\*/,      // Italic
+      /`.*?`/,        // Inline code
+      /```[\s\S]*?```/, // Code blocks
+      /^#{1,6}\s/m,   // Headers
+      /^\*\s/m,       // Bullet lists
+      /^\d+\.\s/m     // Numbered lists
+    ];
+    return markdownPatterns.some(pattern => pattern.test(message.message));
+  }, [message.message, message.sender]);
+
   return (
     <div className={`flex gap-3 ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
       {message.sender === "ai" && (
@@ -41,7 +58,17 @@ const MessageItem = React.memo(({ message }) => {
         </div>
       )}
       <div className={`max-w-[80%] p-4 rounded-2xl ${messageStyle[message.sender]}`} style={{ willChange: 'transform, opacity' }}>
-        <p className="whitespace-pre-wrap leading-relaxed">{message.message}</p>
+        {message.sender === 'ai' && hasMarkdown ? (
+          <div className="chat-markdown">
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]}
+            >
+              {message.message}
+            </ReactMarkdown>
+          </div>
+        ) : (
+          <p className="whitespace-pre-wrap leading-relaxed">{message.message}</p>
+        )}
         {message.file_name && (
           <div className="flex items-center gap-2 mt-2 p-2 bg-slate-50 rounded-lg">
             <Paperclip className="w-3 h-3 text-slate-500" />
@@ -272,12 +299,17 @@ export default function RFPChatBot() {
       await apiClient.createSession(sessionId, 'RFP Chat');
 
       // Send user message and get AI response automatically
+      const fileUrl = sharedDocuments.length > 0 ? sharedDocuments[0].url : null;
+      const fileName = sharedDocuments.length > 0 ? sharedDocuments[0].name : null;
+      
+      console.log('📤 Sending message with document:', { fileUrl, fileName, documentsCount: sharedDocuments.length });
+      
       const result = await apiClient.sendMessage(
         sessionId, 
         userMessage, 
         'user',
-        sharedDocuments.length > 0 ? sharedDocuments[0].url : null,
-        sharedDocuments.length > 0 ? sharedDocuments[0].name : null
+        fileUrl,
+        fileName
       );
       
     } catch (error) {

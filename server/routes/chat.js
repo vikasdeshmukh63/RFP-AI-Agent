@@ -119,18 +119,33 @@ router.post("/messages", authenticateToken, validateRequest(schemas.chatMessage)
         let documents = [];
         if (file_url) {
           try {
+            console.log(`🔍 Looking for document with file_url: ${file_url} for user: ${req.user.id}`);
+            
+            // Debug: Check what documents exist for this user
+            const allUserDocs = await UploadedDocument.findAll({
+              where: { user_id: req.user.id },
+              attributes: ["id", "file_url", "original_name"],
+              limit: 5
+            });
+            console.log(`📚 User has ${allUserDocs.length} documents:`, allUserDocs.map(d => ({ url: d.file_url, name: d.original_name })));
+            
             // Find document by URL
             const document = await UploadedDocument.findOne({
               where: {
                 file_url: file_url,
                 user_id: req.user.id,
               },
-              attributes: ["file_path", "mime_type"],
+              attributes: ["file_path", "mime_type", "original_name"],
             });
+
+            console.log(`📄 Document found:`, document ? `${document.original_name} (${document.mime_type})` : 'None');
 
             if (document) {
               const preparedDoc = await documentService.prepareDocumentForAI(document.file_path, document.mime_type);
               documents = [preparedDoc];
+              console.log(`✅ Document prepared for AI: ${preparedDoc.filename}`);
+            } else {
+              console.log(`❌ No document found with file_url: ${file_url}`);
             }
           } catch (parseError) {
             console.error("Document preparation error:", parseError);
@@ -138,6 +153,7 @@ router.post("/messages", authenticateToken, validateRequest(schemas.chatMessage)
         }
 
         // Generate AI response
+        console.log(`🎯 Calling AI with ${documents.length} documents`);
         const aiResponse = await openRouterService.chatWithDocument(
           message,
           documents,

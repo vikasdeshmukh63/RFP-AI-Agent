@@ -48,10 +48,17 @@ class OpenRouterService {
           },
         ];
 
-        // Add each document as an image
-        documents.forEach((doc) => {
-          // Only add if it's a supported image type or PDF
-          if (doc.mimeType.startsWith("image/") || doc.mimeType === "application/pdf") {
+        // Add each document
+        documents.forEach((doc, index) => {
+          console.log(`📄 Processing document ${index + 1}: ${doc.filename} (${doc.mimeType})`);
+          
+          if (doc.type === 'text') {
+            // For text-extracted documents (like PDFs), add the text content directly
+            console.log(`✅ Adding text content from: ${doc.filename} (${doc.content.length} characters)`);
+            messages[0].content[0].text += `\n\n--- Document Content: ${doc.filename} ---\n${doc.content}\n--- End of Document ---\n`;
+          } else if (doc.mimeType.startsWith("image/")) {
+            // For images, use vision API
+            console.log(`✅ Adding image to vision API: ${doc.filename}`);
             messages[0].content.push({
               type: "image_url",
               image_url: {
@@ -60,9 +67,8 @@ class OpenRouterService {
               },
             });
           } else {
-            // For non-image documents, we'll need to extract text first
-            // For now, let's add a note about the document
-            messages[0].content[0].text += `\n\nDocument: ${doc.filename} (${doc.mimeType}) - Please note this document type may require text extraction.`;
+            console.log(`⚠️ Document type not supported: ${doc.mimeType}`);
+            messages[0].content[0].text += `\n\nDocument: ${doc.filename} (${doc.mimeType}) - Document type not supported for analysis.`;
           }
         });
       } else {
@@ -83,6 +89,9 @@ class OpenRouterService {
         top_p: 0.9,
         stream: false,
       };
+
+      console.log(`🤖 Sending request to OpenRouter with model: ${this.model}`);
+      console.log(`📝 Message structure:`, JSON.stringify(messages, null, 2).substring(0, 500) + '...');
 
       // Add JSON schema if provided
       if (responseJsonSchema) {
@@ -183,6 +192,12 @@ Note: Document analysis is being performed without direct document access. Pleas
   }
 
   async chatWithDocument(message, documents = [], conversationHistory = []) {
+    console.log(`🤖 ChatWithDocument called with ${documents.length} documents`);
+    
+    if (documents.length > 0) {
+      console.log(`📄 Documents received:`, documents.map(d => ({ filename: d.filename, mimeType: d.mimeType, sizeMB: d.sizeMB })));
+    }
+
     let prompt = `You are a professional AI assistant for ESDS's Presales Division, expert at analyzing RFP documents.
 
 Instructions:
@@ -211,18 +226,22 @@ Please provide your response:`;
 
     // Try with documents first, if that fails, fall back to text-only
     try {
-      return await this.invokeLLM({
+      console.log(`🚀 Attempting document-based chat...`);
+      const result = await this.invokeLLM({
         prompt,
         documents,
       });
+      console.log(`✅ Document-based chat successful`);
+      return result;
     } catch (error) {
-      console.warn("Document-based chat failed, trying text-only approach:", error.message);
+      console.warn("❌ Document-based chat failed, trying text-only approach:", error.message);
 
       // Fallback to text-only chat
       const textOnlyPrompt = `${prompt}
 
 Note: I'm currently unable to directly access the uploaded documents, but I can provide general RFP analysis guidance based on your question.`;
 
+      console.log(`🔄 Falling back to text-only chat`);
       return await this.invokeLLM({
         prompt: textOnlyPrompt,
       });
