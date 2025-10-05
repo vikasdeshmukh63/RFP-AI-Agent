@@ -55,6 +55,7 @@ class OpenRouterService {
           if (doc.type === 'text') {
             // For text-extracted documents (like PDFs), add the text content directly
             console.log(`✅ Adding text content from: ${doc.filename} (${doc.content.length} characters)`);
+            console.log(`📝 First 100 chars of content: "${doc.content.substring(0, 100)}..."`);
             messages[0].content[0].text += `\n\n--- Document Content: ${doc.filename} ---\n${doc.content}\n--- End of Document ---\n`;
           } else if (doc.mimeType.startsWith("image/")) {
             // For images, use vision API
@@ -91,7 +92,16 @@ class OpenRouterService {
       };
 
       console.log(`🤖 Sending request to OpenRouter with model: ${this.model}`);
-      console.log(`📝 Message structure:`, JSON.stringify(messages, null, 2).substring(0, 500) + '...');
+      console.log(`📝 Message structure:`, JSON.stringify(messages, null, 2).substring(0, 1000) + '...');
+      
+      // Log the actual prompt being sent
+      if (messages[0] && messages[0].content) {
+        const promptText = typeof messages[0].content === 'string' 
+          ? messages[0].content 
+          : messages[0].content[0]?.text || 'No text content';
+        console.log(`📋 Final prompt length: ${promptText.length} characters`);
+        console.log(`📋 Prompt preview: "${promptText.substring(0, 300)}..."`);
+      }
 
       // Add JSON schema if provided
       if (responseJsonSchema) {

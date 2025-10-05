@@ -69,7 +69,7 @@ app.use(limiter);
 // Stricter rate limiting for AI endpoints
 const aiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 10, // Limit each IP to 10 AI requests per minute
+  max: 100, // Limit each IP to 10 AI requests per minute
   message: {
     error: 'Too many AI requests, please wait before trying again.'
   }

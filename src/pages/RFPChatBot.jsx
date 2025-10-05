@@ -88,31 +88,7 @@ const MessageItem = React.memo(({ message }) => {
   );
 });
 
-// Optimized DocumentItem with better performance
-const DocumentItem = React.memo(({ doc, index, onRemove, uploadedFrom }) => {
-  const fileIcon = useMemo(() => {
-    if (doc.type?.includes("pdf")) return <FileText className="w-4 h-4 text-red-500" />;
-    if (doc.type?.includes("word") || doc.type?.includes("document")) return <File className="w-4 h-4 text-blue-500" />;
-    if (doc.type?.includes("excel") || doc.type?.includes("sheet")) return <File className="w-4 h-4 text-green-500" />;
-    if (doc.type?.startsWith("image")) return <File className="w-4 h-4 text-purple-500" />;
-    return <File className="w-4 h-4 text-gray-500" />;
-  }, [doc.type]);
 
-  return (
-    <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
-      {fileIcon}
-      <span className="text-sm text-emerald-800 font-medium">{doc.name}</span>
-      {uploadedFrom && (
-        <Badge variant="outline" className="text-xs">
-          {uploadedFrom}
-        </Badge>
-      )}
-      <Button variant="ghost" size="icon" onClick={() => onRemove(index)} className="h-4 w-4 p-0 text-emerald-600 hover:text-emerald-800">
-        <X className="w-3 h-3" />
-      </Button>
-    </div>
-  );
-});
 
 // Loading skeleton component
 const LoadingSkeleton = React.memo(() => (
@@ -134,12 +110,11 @@ export default function RFPChatBot() {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState("");
-  const [uploadedDocuments, setUploadedDocuments] = useState([]);
+  const [sessionDocument, setSessionDocument] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [sharedDocuments, setSharedDocuments] = useState([]);
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -169,29 +144,12 @@ export default function RFPChatBot() {
     }
   }, [sessionId, isInitialized]);
 
-  // Enhanced shared documents loading with Synopsis sync
-  const loadSharedDocuments = useCallback(async () => {
-    if (!sessionId || !isInitialized) return;
-    
-    try {
-      const { documents: docs } = await apiClient.getDocuments({ 
-        limit: 20, 
-        sort: '-created_at' 
-      });
-      setSharedDocuments(prev => {
-        const newDocs = docs || [];
-        if (prev.length !== newDocs.length || prev.some((doc, i) => doc.id !== newDocs[i]?.id)) {
-          setUploadedDocuments(newDocs);
-          return newDocs;
-        }
-        return prev;
-      });
-    } catch (error) {
-      console.error("Failed to load shared documents:", error);
-    }
-  }, [sessionId, isInitialized]);
+  // Session document management - no shared documents
+  const clearSessionDocument = useCallback(() => {
+    setSessionDocument(null);
+  }, []);
 
-  // Enhanced file upload with Synopsis sync
+  // Session-specific file upload
   const handleFileUpload = useCallback(async (file) => {
     setIsUploading(true);
     let progressValue = 0;
@@ -212,14 +170,16 @@ export default function RFPChatBot() {
 
       const createdDoc = uploadResult.document;
       
-      // Batch state updates
-      setUploadedDocuments(prev => [createdDoc, ...prev]);
-      setSharedDocuments(prev => [createdDoc, ...prev]);
+      // Store only for this session
+      setSessionDocument(createdDoc);
       setUploadProgress(100);
 
+      // Ensure session exists before sending message
+      await apiClient.createSession(sessionId, 'RFP Chat');
+      
       const systemMsg = await apiClient.sendMessage(
         sessionId,
-        `📄 Document "${file.name}" uploaded successfully and synced across all modules (RFP Analysis, Synopsis). You can now ask questions about its content.`,
+        `📄 Document "${file.name}" uploaded successfully for this chat session. You can now ask questions about its content.`,
         "ai",
         uploadResult.file_url,
         file.name
@@ -269,22 +229,26 @@ export default function RFPChatBot() {
     handleFileUpload(selectedFile);
   }, [handleFileUpload, sessionId, loadMessages]);
 
-  // Optimized document removal
-  const removeDocument = useCallback(async (index) => {
-    const docToRemove = sharedDocuments[index]; 
-    if (docToRemove?.id) { 
+  // Remove session document
+  const removeSessionDocument = useCallback(async () => {
+    if (sessionDocument?.id) { 
       try {
-        await apiClient.deleteDocument(docToRemove.id);
+        await apiClient.deleteDocument(sessionDocument.id);
+        
+        // Send a system message about document removal
+        await apiClient.sendMessage(
+          sessionId,
+          `📄 Document "${sessionDocument.name}" has been removed from this session.`,
+          "ai"
+        );
+        
+        await loadMessages();
       } catch (error) {
-        console.error("Failed to delete document:", error);
+        console.error("Failed to delete session document:", error);
       }
     }
-    
-    // Batch state updates
-    const newDocs = sharedDocuments.filter((_, i) => i !== index);
-    setUploadedDocuments(newDocs);
-    setSharedDocuments(newDocs);
-  }, [sharedDocuments]);
+    setSessionDocument(null);
+  }, [sessionDocument, sessionId, loadMessages]);
 
   // Optimized message sending
   const handleSendMessage = useCallback(async () => {
@@ -299,10 +263,10 @@ export default function RFPChatBot() {
       await apiClient.createSession(sessionId, 'RFP Chat');
 
       // Send user message and get AI response automatically
-      const fileUrl = sharedDocuments.length > 0 ? sharedDocuments[0].url : null;
-      const fileName = sharedDocuments.length > 0 ? sharedDocuments[0].name : null;
+      const fileUrl = sessionDocument ? sessionDocument.url : null;
+      const fileName = sessionDocument ? sessionDocument.name : null;
       
-      console.log('📤 Sending message with document:', { fileUrl, fileName, documentsCount: sharedDocuments.length });
+      console.log('📤 Sending message with session document:', { fileUrl, fileName, hasDocument: !!sessionDocument });
       
       const result = await apiClient.sendMessage(
         sessionId, 
@@ -323,7 +287,7 @@ export default function RFPChatBot() {
       setIsLoading(false);
       await loadMessages();
     }
-  }, [inputMessage, sessionId, sharedDocuments, loadMessages, isLoading]);
+  }, [inputMessage, sessionId, sessionDocument, loadMessages, isLoading]);
 
   // Optimized key press handler
   const handleKeyPress = useCallback((e) => {
@@ -333,18 +297,27 @@ export default function RFPChatBot() {
     }
   }, [handleSendMessage]);
 
-  // Optimized chat actions
-  const startNewChat = useCallback(() => {
+  // Optimized chat actions with document cleanup
+  const startNewChat = useCallback(async () => {
+    // Clean up current session document
+    if (sessionDocument?.id) {
+      try {
+        await apiClient.deleteDocument(sessionDocument.id);
+      } catch (error) {
+        console.error("Failed to cleanup session document:", error);
+      }
+    }
+    
     const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     setSessionId(newSessionId);
     setMessages([]);
-    loadSharedDocuments(); 
-  }, [loadSharedDocuments]);
+    setSessionDocument(null);
+  }, [sessionDocument]);
 
-  const clearChat = useCallback(() => {
+  const clearChat = useCallback(async () => {
     setMessages([]);
     setInputMessage("");
-    startNewChat();
+    await startNewChat();
   }, [startNewChat]);
 
   // Initialize session once
@@ -354,12 +327,12 @@ export default function RFPChatBot() {
     setIsInitialized(true);
   }, []);
 
-  // Load data on initialization - batch loading
+  // Load data on initialization
   useEffect(() => {
     if (isInitialized && sessionId) {
-      Promise.all([loadMessages(), loadSharedDocuments()]).catch(console.error);
+      loadMessages().catch(console.error);
     }
-  }, [isInitialized, sessionId, loadMessages, loadSharedDocuments]);
+  }, [isInitialized, sessionId, loadMessages]);
 
   // Optimized scroll effect with debouncing
   useEffect(() => {
@@ -369,18 +342,7 @@ export default function RFPChatBot() {
     }
   }, [messages.length, scrollToBottom]);
 
-  // Memoized document list
-  const documentList = useMemo(() => {
-    return sharedDocuments.map((doc, index) => (
-      <DocumentItem
-        key={`${doc.id || doc.url}-${index}`}
-        doc={doc}
-        index={index}
-        onRemove={removeDocument}
-        uploadedFrom={doc.uploaded_from}
-      />
-    ));
-  }, [sharedDocuments, removeDocument]);
+
 
   // Memoized message list
   const messageList = useMemo(() => {
@@ -450,16 +412,30 @@ export default function RFPChatBot() {
               </div>
               <h3 className="text-lg font-semibold mb-2">Welcome to the RFP Agentic Chat Bot</h3>
               <p className="mb-4 max-w-md mx-auto">
-                Upload documents using the attachment button below or start asking questions directly.
+                {!sessionDocument ? (
+                  <>Upload a document using the attachment button below to start analyzing and asking questions about it.</>
+                ) : (
+                  <>Document uploaded! You can now ask questions about the content.</>
+                )}
               </p>
             </div>
           )}
 
-          {sharedDocuments.length > 0 && (
+          {sessionDocument && (
             <div className="mb-4">
-              <p className="text-sm font-medium text-slate-700 mb-2">📚 Available Documents (Synced):</p>
-              <div className="flex flex-wrap gap-2">
-                {documentList}
+              <p className="text-sm font-medium text-slate-700 mb-2">📄 Session Document:</p>
+              <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                <FileText className="w-4 h-4 text-red-500" />
+                <span className="text-sm text-emerald-800 font-medium">{sessionDocument.name}</span>
+                <Badge variant="outline" className="text-xs">Session Only</Badge>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={removeSessionDocument} 
+                  className="h-4 w-4 p-0 text-emerald-600 hover:text-emerald-800"
+                >
+                  <X className="w-3 h-3" />
+                </Button>
               </div>
             </div>
           )}

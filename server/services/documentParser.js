@@ -38,18 +38,66 @@ class DocumentService {
     try {
       console.log(`📄 Extracting text from PDF: ${filePath}`);
 
+      // Check if file exists
+      const stats = await fs.stat(filePath);
+      console.log(`📊 PDF file size: ${(stats.size / 1024 / 1024).toFixed(2)}MB`);
+
       // Dynamic import to avoid initialization issues
-      const pdfParse = (await import('pdf-parse')).default;
+      const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
 
       const fileBuffer = await fs.readFile(filePath);
-      const pdfData = await pdfParse(fileBuffer);
+      console.log(`📖 File buffer loaded: ${fileBuffer.length} bytes`);
+      
+      // Convert Buffer to Uint8Array for pdfjs-dist
+      const uint8Array = new Uint8Array(fileBuffer);
+      console.log(`🔄 Converted to Uint8Array: ${uint8Array.length} bytes`);
+      
+      // Load the PDF document
+      const loadingTask = pdfjsLib.getDocument({
+        data: uint8Array,
+        verbosity: 0 // Suppress console output
+      });
+      
+      const pdfDocument = await loadingTask.promise;
+      const numPages = pdfDocument.numPages;
+      console.log(`📄 PDF loaded: ${numPages} pages`);
 
-      console.log(`✅ PDF text extracted: ${pdfData.text.length} characters, ${pdfData.numpages} pages`);
+      let fullText = '';
+      
+      // Extract text from each page
+      for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+        try {
+          const page = await pdfDocument.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          
+          // Combine all text items from the page
+          const pageText = textContent.items
+            .map(item => item.str)
+            .join(' ');
+          
+          fullText += pageText + '\n\n';
+          console.log(`📄 Page ${pageNum}: ${pageText.length} characters`);
+        } catch (pageError) {
+          console.warn(`⚠️ Failed to extract text from page ${pageNum}:`, pageError.message);
+        }
+      }
+
+      // Clean up the text
+      fullText = fullText.trim();
+
+      console.log(`✅ PDF text extracted: ${fullText.length} characters, ${numPages} pages`);
+      
+      // Log first 200 characters to verify content
+      if (fullText.length > 0) {
+        console.log(`📝 First 200 chars: "${fullText.substring(0, 200)}..."`);
+      } else {
+        console.warn(`⚠️ PDF text is empty! This might be a scanned PDF with images only.`);
+      }
 
       return {
-        text: pdfData.text,
-        pages: pdfData.numpages,
-        info: pdfData.info,
+        text: fullText,
+        pages: numPages,
+        info: { pages: numPages },
       };
     } catch (error) {
       console.error("❌ PDF text extraction failed:", error);

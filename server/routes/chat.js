@@ -4,6 +4,8 @@ import { authenticateToken } from "../middleware/auth.js";
 import { validateRequest, schemas } from "../middleware/validation.js";
 import openRouterService from "../services/openrouter.js";
 import documentService from "../services/documentParser.js";
+import fs from "fs/promises";
+import { Op } from "sequelize";
 
 const router = express.Router();
 
@@ -72,6 +74,40 @@ router.delete("/sessions/:sessionId", authenticateToken, async (req, res) => {
     // Delete messages first
     await GeneralChatMessage.deleteBySession(sessionId, req.user.id);
 
+    // Clean up documents referenced in this session's messages
+    const sessionMessages = await GeneralChatMessage.findAll({
+      where: {
+        session_id: sessionId,
+        user_id: req.user.id,
+        file_url: { [Op.ne]: null },
+      },
+      attributes: ["file_url"],
+    });
+
+    const sessionFileUrls = [...new Set(sessionMessages.map((msg) => msg.file_url).filter(Boolean))];
+
+    for (const fileUrl of sessionFileUrls) {
+      try {
+        const doc = await UploadedDocument.findOne({
+          where: {
+            file_url: fileUrl,
+            user_id: req.user.id,
+            uploaded_from: "chatbot",
+          },
+        });
+
+        if (doc) {
+          // Delete physical file
+          await fs.unlink(doc.file_path);
+          // Delete database record
+          await doc.destroy();
+          console.log(`🗑️ Cleaned up session document: ${doc.original_name}`);
+        }
+      } catch (cleanupError) {
+        console.error(`Failed to cleanup document ${fileUrl}:`, cleanupError);
+      }
+    }
+
     // Delete session
     const session = await ChatSession.findOne({
       where: {
@@ -98,6 +134,9 @@ router.post("/messages", authenticateToken, validateRequest(schemas.chatMessage)
   try {
     const { session_id, message, sender, file_url, file_name } = req.body;
 
+    // Ensure session exists before saving message
+    
+
     // Save user message
     const savedMessage = await GeneralChatMessage.create({
       session_id,
@@ -117,19 +156,12 @@ router.post("/messages", authenticateToken, validateRequest(schemas.chatMessage)
 
         // Get document content if available
         let documents = [];
+
+        // First try to use the document from the message
         if (file_url) {
           try {
             console.log(`🔍 Looking for document with file_url: ${file_url} for user: ${req.user.id}`);
-            
-            // Debug: Check what documents exist for this user
-            const allUserDocs = await UploadedDocument.findAll({
-              where: { user_id: req.user.id },
-              attributes: ["id", "file_url", "original_name"],
-              limit: 5
-            });
-            console.log(`📚 User has ${allUserDocs.length} documents:`, allUserDocs.map(d => ({ url: d.file_url, name: d.original_name })));
-            
-            // Find document by URL
+
             const document = await UploadedDocument.findOne({
               where: {
                 file_url: file_url,
@@ -138,22 +170,93 @@ router.post("/messages", authenticateToken, validateRequest(schemas.chatMessage)
               attributes: ["file_path", "mime_type", "original_name"],
             });
 
-            console.log(`📄 Document found:`, document ? `${document.original_name} (${document.mime_type})` : 'None');
-
             if (document) {
+              console.log(`📄 Found document from message: ${document.original_name} (${document.mime_type})`);
               const preparedDoc = await documentService.prepareDocumentForAI(document.file_path, document.mime_type);
               documents = [preparedDoc];
-              console.log(`✅ Document prepared for AI: ${preparedDoc.filename}`);
-            } else {
-              console.log(`❌ No document found with file_url: ${file_url}`);
             }
           } catch (parseError) {
             console.error("Document preparation error:", parseError);
           }
         }
 
+        // If no document found from message, try to find the most recent document for this session
+        if (documents.length === 0) {
+          try {
+            console.log(`🔍 No document in message, looking for session documents...`);
+
+            // Find documents referenced in this session's messages
+            const sessionMessages = await GeneralChatMessage.findAll({
+              where: {
+                session_id: session_id,
+                user_id: req.user.id,
+                file_url: { [Op.ne]: null },
+              },
+              attributes: ["file_url"],
+              order: [["created_date", "DESC"]],
+              limit: 1,
+            });
+
+            if (sessionMessages.length > 0) {
+              const latestFileUrl = sessionMessages[0].file_url;
+              console.log(`📄 Found session document: ${latestFileUrl}`);
+
+              const document = await UploadedDocument.findOne({
+                where: {
+                  file_url: latestFileUrl,
+                  user_id: req.user.id,
+                },
+                attributes: ["file_path", "mime_type", "original_name"],
+              });
+
+              if (document) {
+                console.log(`📄 Using session document: ${document.original_name} (${document.mime_type})`);
+                const preparedDoc = await documentService.prepareDocumentForAI(document.file_path, document.mime_type);
+                documents = [preparedDoc];
+              }
+            } else {
+              console.log(`📄 No documents found for this session`);
+            }
+          } catch (sessionDocError) {
+            console.error("Session document lookup error:", sessionDocError);
+          }
+        }
+
+        if (documents.length > 0) {
+          console.log(`✅ Document prepared for AI:`, {
+            filename: documents[0].filename,
+            type: documents[0].type,
+            contentLength: documents[0].content?.length || 0,
+            mimeType: documents[0].mimeType,
+          });
+        } else {
+          console.log(`❌ No documents available for this message`);
+        }
+
         // Generate AI response
-        console.log(`🎯 Calling AI with ${documents.length} documents`);
+        console.log(`🎯 Calling AI with ${documents.length} documents for message: "${message}"`);
+        console.log(`📝 Session ID: ${session_id}, User ID: ${req.user.id}`);
+
+        if (documents.length > 0) {
+          console.log(
+            `📋 Document details:`,
+            documents.map((d) => ({
+              filename: d.filename,
+              type: d.type,
+              contentLength: d.content?.length || 0,
+              mimeType: d.mimeType,
+              hasContent: !!d.content,
+            }))
+          );
+
+          // Log first 100 characters of document content
+          if (documents[0].content) {
+            console.log(`📄 Document content preview: "${documents[0].content.substring(0, 100)}..."`);
+          }
+        } else {
+          console.log(`❌ NO DOCUMENTS FOUND - AI will not have document context`);
+        }
+
         const aiResponse = await openRouterService.chatWithDocument(
           message,
           documents,
