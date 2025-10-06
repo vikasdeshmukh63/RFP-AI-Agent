@@ -28,6 +28,8 @@ router.post("/upload", authenticateToken, (req, res) => {
       const fileData = await fileUploadService.processUploadedFile(req.file, req.user.id);
 
       // Save to database using Sequelize
+      console.log(`📤 Saving document for user ${req.user.id} (${req.user.email}): ${fileData.originalName} from ${req.body.uploaded_from || "unknown"}`);
+      
       const document = await UploadedDocument.create({
         name: fileData.name,
         original_name: fileData.originalName,
@@ -38,6 +40,12 @@ router.post("/upload", authenticateToken, (req, res) => {
         uploaded_from: req.body.uploaded_from || "unknown",
         user_id: req.user.id,
       });
+
+      console.log(`✅ Document saved with ID ${document.id} for user ${req.user.id}`);
+      
+      // Verify the document was saved by checking the count
+      const userDocCount = await UploadedDocument.count({ where: { user_id: req.user.id } });
+      console.log(`📊 User ${req.user.id} now has ${userDocCount} total documents`);
 
       res.status(201).json({
         message: "File uploaded successfully",
@@ -72,6 +80,8 @@ router.get("/", authenticateToken, async (req, res) => {
   try {
     const { limit = 20, offset = 0, sort = "-created_at" } = req.query;
 
+    console.log(`📄 Fetching documents for user ${req.user.id} (${req.user.email})`);
+
     // Parse sort parameter
     const sortField = sort.startsWith("-") ? sort.substring(1) : sort;
     const sortOrder = sort.startsWith("-") ? "DESC" : "ASC";
@@ -86,6 +96,9 @@ router.get("/", authenticateToken, async (req, res) => {
       offset: parseInt(offset),
       attributes: ["id", "name", "original_name", "file_url", "mime_type", "size_bytes", "uploaded_from", "created_at", "updated_at"],
     });
+
+    console.log(`📄 Found ${documents.length} documents for user ${req.user.id}`);
+    console.log(`📄 Document sources:`, documents.map(doc => ({ name: doc.original_name, uploaded_from: doc.uploaded_from })));
 
     const formattedDocuments = documents.map((doc) => ({
       id: doc.id,
@@ -256,6 +269,8 @@ router.get("/stats/overview", authenticateToken, async (req, res) => {
   try {
     const { sequelize } = UploadedDocument;
 
+    console.log(`📊 Fetching document stats for user ${req.user.id}`);
+
     // Get stats by source
     const statsBySource = await UploadedDocument.findAll({
       where: { user_id: req.user.id },
@@ -278,6 +293,11 @@ router.get("/stats/overview", authenticateToken, async (req, res) => {
         [sequelize.fn("COUNT", sequelize.literal("CASE WHEN mime_type LIKE 'image/%' THEN 1 END")), "image_count"],
       ],
       raw: true,
+    });
+
+    console.log(`📊 Stats for user ${req.user.id}:`, {
+      total: totalStats.total_documents,
+      by_source: statsBySource
     });
 
     res.json({
