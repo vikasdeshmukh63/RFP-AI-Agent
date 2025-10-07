@@ -237,17 +237,6 @@ const startServer = async () => {
   ✅ Synopsis Management
   ✅ N8N Document Parsing Agent Support
   ✅ PostgreSQL Database
-
-📝 Next Steps:
-  1. Copy .env.example to .env and configure your settings
-  2. Run 'npm run setup-db' to initialize the database
-  3. Update your frontend to use this server
-  4. Configure OpenRouter API key
-  5. Set up N8N webhook for document parsing (optional)
-
-🔗 Frontend Integration:
-  Replace Base44 SDK calls with HTTP requests to this server
-  Update API endpoints in your React app
       `);
     });
 

@@ -1,10 +1,9 @@
-
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { BarChart3, MessageCircle, FileText, FileSpreadsheet, LogOut, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import logoImage from "../assets/logo.png";
 import {
   Sidebar,
   SidebarContent,
@@ -47,12 +46,10 @@ const navigationItems = [
 // Memoized navigation item component
 const NavigationItem = React.memo(({ item, isActive }) => (
   <SidebarMenuItem>
-    <SidebarMenuButton 
-      asChild 
+    <SidebarMenuButton
+      asChild
       className={`hover:bg-blue-50/80 hover:text-blue-700 transition-all duration-300 rounded-xl mb-2 group ${
-        isActive
-          ? 'esds-gradient text-white shadow-lg border-0 hover:text-white' 
-          : 'text-slate-700'
+        isActive ? "esds-gradient text-white shadow-lg border-0 hover:text-white" : "text-slate-700"
       }`}
     >
       <Link to={item.url} className="flex items-center gap-3 px-4 py-3">
@@ -63,12 +60,12 @@ const NavigationItem = React.memo(({ item, isActive }) => (
   </SidebarMenuItem>
 ));
 
-export default function Layout({ children, currentPageName }) {
+export default function Layout({ children }) {
   const location = useLocation();
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to logout?')) {
+    if (window.confirm("Are you sure you want to logout?")) {
       logout();
       // ProtectedRoute will automatically redirect to login when user becomes null
     }
@@ -152,14 +149,14 @@ export default function Layout({ children, currentPageName }) {
           }
         `}
       </style>
-      
+
       <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         <Sidebar className="border-r border-slate-200/60 glass-morphism sidebar-optimized">
           <SidebarHeader className="border-b border-slate-200/60 p-6">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <img 
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68bc74ec43e5ff59d952cca6/8d92656b2_image.png"
+                <img
+                  src={logoImage}
                   alt="ESDS Logo"
                   className="w-12 h-12 object-contain"
                   loading="lazy"
@@ -175,20 +172,14 @@ export default function Layout({ children, currentPageName }) {
               </div>
             </div>
           </SidebarHeader>
-          
+
           <SidebarContent className="p-4">
             <SidebarGroup>
-              <SidebarGroupLabel className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">
-                Navigation
-              </SidebarGroupLabel>
+              <SidebarGroupLabel className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">Navigation</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {navigationItems.map((item) => (
-                    <NavigationItem 
-                      key={item.title} 
-                      item={item} 
-                      isActive={location.pathname.startsWith(item.url)}
-                    />
+                    <NavigationItem key={item.title} item={item} isActive={location.pathname.startsWith(item.url)} />
                   ))}
                 </SidebarMenu>
               </SidebarGroupContent>
@@ -208,7 +199,7 @@ export default function Layout({ children, currentPageName }) {
                     <p className="text-xs text-slate-500 truncate">{user.email}</p>
                   </div>
                 </div>
-                
+
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-3 p-3 text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 group"
@@ -218,17 +209,11 @@ export default function Layout({ children, currentPageName }) {
                 </button>
               </div>
             )}
-            
+
             {/* ESDS Branding */}
             <div className="text-center space-y-2 pt-2 border-t border-slate-200/60">
               <div className="flex justify-center">
-                <img 
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68bc74ec43e5ff59d952cca6/8d92656b2_image.png"
-                  alt="ESDS Logo"
-                  className="w-6 h-6 object-contain opacity-80"
-                  loading="lazy"
-                  decoding="async"
-                />
+                <img src={logoImage} alt="ESDS Logo" className="w-6 h-6 object-contain opacity-80" loading="lazy" decoding="async" />
               </div>
               <div>
                 <p className="text-xs text-slate-400 font-medium">Powered by</p>
@@ -246,13 +231,7 @@ export default function Layout({ children, currentPageName }) {
             <div className="flex items-center gap-4">
               <SidebarTrigger className="hover:bg-slate-100 p-2 rounded-lg transition-colors duration-200" />
               <div className="flex items-center gap-3">
-                <img 
-                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68bc74ec43e5ff59d952cca6/8d92656b2_image.png"
-                  alt="ESDS Logo"
-                  className="w-8 h-8 object-contain"
-                  loading="lazy"
-                  decoding="async"
-                />
+                <img src={logoImage} alt="ESDS Logo" className="w-8 h-8 object-contain" loading="lazy" decoding="async" />
                 <h1 className="text-xl font-bold">
                   <span className="text-blue-800">Agentic</span> <span className="esds-text">AI Portal</span>
                 </h1>
@@ -260,12 +239,9 @@ export default function Layout({ children, currentPageName }) {
             </div>
           </header>
 
-          <div className="flex-1 overflow-auto">
-            {children}
-          </div>
+          <div className="flex-1 overflow-auto">{children}</div>
         </main>
       </div>
     </SidebarProvider>
   );
 }
-

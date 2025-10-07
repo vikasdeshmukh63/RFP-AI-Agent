@@ -2,6 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import logoImage from "../assets/logo.png";
 import {
   MessageCircle,
   Sparkles,
@@ -35,7 +36,7 @@ export default function Dashboard() {
           <div className="max-w-4xl mx-auto text-center">
             <div className="flex items-center justify-center gap-4 mb-6">
               <img
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68bc74ec43e5ff59d952cca6/8d92656b2_image.png"
+                src={logoImage}
                 alt="ESDS Logo"
                 className="w-16 h-16 object-contain bg-white/10 rounded-2xl p-2 backdrop-blur-sm"
                 loading="lazy"

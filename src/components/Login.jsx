@@ -1,34 +1,35 @@
-import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { Loader2, Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
+import logoImage from "../assets/logo.png";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [localError, setLocalError] = useState('');
+  const [localError, setLocalError] = useState("");
 
   const { login, register, error: authError } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setLocalError('');
+    setLocalError("");
 
     try {
       if (isLogin) {
         await login(email, password);
       } else {
         if (!name.trim()) {
-          setLocalError('Name is required');
+          setLocalError("Name is required");
           return;
         }
         await register(email, password, name.trim());
@@ -42,10 +43,10 @@ export default function Login() {
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
-    setLocalError('');
-    setEmail('');
-    setPassword('');
-    setName('');
+    setLocalError("");
+    setEmail("");
+    setPassword("");
+    setName("");
   };
 
   const error = localError || authError;
@@ -56,21 +57,17 @@ export default function Login() {
         <CardHeader className="text-center">
           <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <img
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68bc74ec43e5ff59d952cca6/8d92656b2_image.png"
+              src={logoImage}
               alt="ESDS Logo"
               className="w-12 h-12 object-contain"
               onError={(e) => {
-                e.target.style.display = 'none';
+                e.target.style.display = "none";
                 e.target.parentElement.innerHTML = '<div class="text-white font-bold text-xl">ESDS</div>';
               }}
             />
           </div>
-          <CardTitle className="text-2xl font-bold text-slate-900">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
-          </CardTitle>
-          <p className="text-slate-600">
-            {isLogin ? 'Sign in to your RFP Analysis account' : 'Join ESDS RFP Analysis Platform'}
-          </p>
+          <CardTitle className="text-2xl font-bold text-slate-900">{isLogin ? "Welcome Back" : "Create Account"}</CardTitle>
+          <p className="text-slate-600">{isLogin ? "Sign in to your RFP Analysis account" : "Join ESDS RFP Analysis Platform"}</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -88,7 +85,7 @@ export default function Login() {
                 />
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -101,7 +98,7 @@ export default function Login() {
                 disabled={loading}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
@@ -123,18 +120,10 @@ export default function Login() {
                   onClick={() => setShowPassword(!showPassword)}
                   disabled={loading}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-slate-400" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-slate-400" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4 text-slate-400" /> : <Eye className="h-4 w-4 text-slate-400" />}
                 </Button>
               </div>
-              {!isLogin && (
-                <p className="text-xs text-slate-500">
-                  Password must be at least 6 characters long
-                </p>
-              )}
+              {!isLogin && <p className="text-xs text-slate-500">Password must be at least 6 characters long</p>}
             </div>
 
             {error && (
@@ -143,40 +132,34 @@ export default function Login() {
               </Alert>
             )}
 
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" 
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
               disabled={loading}
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {isLogin ? 'Signing in...' : 'Creating account...'}
+                  {isLogin ? "Signing in..." : "Creating account..."}
                 </>
               ) : (
                 <>
-                  {isLogin ? (
-                    <LogIn className="w-4 h-4 mr-2" />
-                  ) : (
-                    <UserPlus className="w-4 h-4 mr-2" />
-                  )}
-                  {isLogin ? 'Sign In' : 'Create Account'}
+                  {isLogin ? <LogIn className="w-4 h-4 mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
+                  {isLogin ? "Sign In" : "Create Account"}
                 </>
               )}
             </Button>
 
             <div className="text-center">
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-sm text-slate-600 hover:text-slate-800"
-                onClick={toggleMode}
-                disabled={loading}
-              >
+              <Button type="button" variant="ghost" className="text-sm text-slate-600 hover:text-slate-800" onClick={toggleMode} disabled={loading}>
                 {isLogin ? (
-                  <>Don't have an account? <span className="font-medium">Sign up</span></>
+                  <>
+                    Don't have an account? <span className="font-medium">Sign up</span>
+                  </>
                 ) : (
-                  <>Already have an account? <span className="font-medium">Sign in</span></>
+                  <>
+                    Already have an account? <span className="font-medium">Sign in</span>
+                  </>
                 )}
               </Button>
             </div>
