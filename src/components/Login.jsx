@@ -182,7 +182,7 @@ export default function Login() {
             </div>
           </form>
 
-          {isLogin && (
+          {/* {isLogin && (
             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-800 font-medium mb-2">Demo Account:</p>
               <p className="text-xs text-blue-600">
@@ -190,7 +190,7 @@ export default function Login() {
                 Password: admin123
               </p>
             </div>
-          )}
+          )} */}
         </CardContent>
       </Card>
     </div>

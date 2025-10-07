@@ -3,7 +3,8 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { BarChart3, MessageCircle, FileText, FileSpreadsheet } from "lucide-react";
+import { BarChart3, MessageCircle, FileText, FileSpreadsheet, LogOut, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -64,6 +65,14 @@ const NavigationItem = React.memo(({ item, isActive }) => (
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      logout();
+      // ProtectedRoute will automatically redirect to login when user becomes null
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -186,24 +195,47 @@ export default function Layout({ children, currentPageName }) {
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter className="border-t border-slate-200/60 p-6">
-            <div className="text-center space-y-3">
+          <SidebarFooter className="border-t border-slate-200/60 p-4 space-y-4">
+            {/* User Info and Logout */}
+            {user && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-slate-50/80 rounded-xl">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-800 truncate">{user.name}</p>
+                    <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 p-3 text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 group"
+                >
+                  <LogOut className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
+                  <span className="text-sm font-medium">Logout</span>
+                </button>
+              </div>
+            )}
+            
+            {/* ESDS Branding */}
+            <div className="text-center space-y-2 pt-2 border-t border-slate-200/60">
               <div className="flex justify-center">
                 <img 
                   src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/68bc74ec43e5ff59d952cca6/8d92656b2_image.png"
                   alt="ESDS Logo"
-                  className="w-8 h-8 object-contain opacity-80"
+                  className="w-6 h-6 object-contain opacity-80"
                   loading="lazy"
                   decoding="async"
                 />
               </div>
               <div>
                 <p className="text-xs text-slate-400 font-medium">Powered by</p>
-                <p className="text-sm font-bold">
+                <p className="text-xs font-bold">
                   <span className="text-blue-800">ESDS</span>
                   <span className="esds-text"> Software Solution</span>
                 </p>
-                <p className="text-xs text-slate-500">Presales & Sales Teams</p>
               </div>
             </div>
           </SidebarFooter>

@@ -1,12 +1,12 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { apiClient } from '../api/client';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { apiClient } from "../api/client";
 
 const AuthContext = createContext();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem("auth_token");
     if (token) {
       apiClient.setToken(token);
       fetchProfile();
@@ -32,9 +32,9 @@ export const AuthProvider = ({ children }) => {
       setUser(user);
       setError(null);
     } catch (error) {
-      console.error('Failed to fetch profile:', error);
+      console.error("Failed to fetch profile:", error);
       logout();
-      setError('Session expired. Please log in again.');
+      setError("Session expired. Please log in again.");
     } finally {
       setLoading(false);
     }
@@ -100,12 +100,8 @@ export const AuthProvider = ({ children }) => {
     changePassword,
     loading,
     error,
-    clearError: () => setError(null)
+    clearError: () => setError(null),
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
