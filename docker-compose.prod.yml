@@ -24,8 +24,8 @@ services:
   # Backend API
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile.backend
+      context: ./server
+      dockerfile: Dockerfile
     container_name: rfp-analysis-api-prod
     environment:
       NODE_ENV: production
@@ -66,8 +66,8 @@ services:
   # Frontend
   frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend
+      context: ./client
+      dockerfile: Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL}
     container_name: rfp-analysis-frontend-prod
