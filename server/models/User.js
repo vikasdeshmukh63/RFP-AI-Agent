@@ -13,7 +13,12 @@ const User = sequelize.define('User', {
     allowNull: false,
     unique: true,
     validate: {
-      isEmail: true
+      isEmail: true,
+      isESDSEmail(value) {
+        if (!value.endsWith('@esds.co.in')) {
+          throw new Error('Email must be from @esds.co.in domain');
+        }
+      }
     }
   },
   password_hash: {

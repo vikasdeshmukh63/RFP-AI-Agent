@@ -16,13 +16,19 @@ export const validateRequest = (schema) => {
 // Validation schemas
 export const schemas = {
   register: Joi.object({
-    email: Joi.string().email().required(),
+    email: Joi.string().email().pattern(/@esds\.co\.in$/).required()
+      .messages({
+        'string.pattern.base': 'Email must be from @esds.co.in domain'
+      }),
     password: Joi.string().min(6).required(),
     name: Joi.string().min(2).max(100).required()
   }),
 
   login: Joi.object({
-    email: Joi.string().email().required(),
+    email: Joi.string().email().pattern(/@esds\.co\.in$/).required()
+      .messages({
+        'string.pattern.base': 'Email must be from @esds.co.in domain'
+      }),
     password: Joi.string().required()
   }),
 

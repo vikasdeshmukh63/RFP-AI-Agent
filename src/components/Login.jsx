@@ -25,6 +25,12 @@ export default function Login() {
     setLocalError("");
 
     try {
+      // Validate email domain
+      if (!email.endsWith('@esds.co.in')) {
+        setLocalError("Only @esds.co.in email addresses are allowed");
+        return;
+      }
+
       if (isLogin) {
         await login(email, password);
       } else {
@@ -91,12 +97,13 @@ export default function Login() {
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Enter your @esds.co.in email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
               />
+              <p className="text-xs text-slate-500">Only @esds.co.in email addresses are allowed</p>
             </div>
 
             <div className="space-y-2">

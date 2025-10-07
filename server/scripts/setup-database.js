@@ -13,7 +13,7 @@ const setupDatabase = async () => {
     console.log('✅ Database tables synchronized successfully!');
     
     // Create a default admin user
-    const adminEmail = 'admin@esds.com';
+    const adminEmail = 'admin@esds.co.in';
     
     try {
       const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -25,7 +25,7 @@ const setupDatabase = async () => {
         role: 'admin'
       });
       
-      console.log('✅ Default admin user created (admin@esds.com / admin123)');
+      console.log('✅ Default admin user created (admin@esds.co.in / admin123)');
     } catch (userError) {
       if (userError.name === 'SequelizeUniqueConstraintError') {
         console.log('ℹ️ Admin user already exists');

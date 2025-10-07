@@ -7,7 +7,7 @@ class OpenRouterService {
   constructor() {
     this.apiKey = process.env.OPENROUTER_API_KEY;
     this.baseURL = process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
-    this.model = "google/gemini-2.0-flash-lite-001";
+    this.model = process.env.MODEL || "google/gemini-2.0-flash-lite-001";
 
     if (!this.apiKey) {
       throw new Error("OPENROUTER_API_KEY is required");

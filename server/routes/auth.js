@@ -11,6 +11,13 @@ router.post('/register', validateRequest(schemas.register), async (req, res) => 
   try {
     const { email, password, name } = req.body;
 
+    // Additional domain validation
+    if (!email.endsWith('@esds.co.in')) {
+      return res.status(400).json({ 
+        error: 'Registration is restricted to @esds.co.in email addresses only' 
+      });
+    }
+
     // Check if user already exists
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
@@ -53,6 +60,13 @@ router.post('/register', validateRequest(schemas.register), async (req, res) => 
 router.post('/login', validateRequest(schemas.login), async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    // Additional domain validation
+    if (!email.endsWith('@esds.co.in')) {
+      return res.status(401).json({ 
+        error: 'Login is restricted to @esds.co.in email addresses only' 
+      });
+    }
 
     // Find user (include password_hash for validation)
     const user = await User.findOne({
